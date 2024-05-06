@@ -1,5 +1,6 @@
 package org.example;
 
+import com.google.common.collect.ImmutableMap;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
@@ -9,6 +10,10 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -29,10 +34,15 @@ public class dailyHuntA11yCheck {
         cap.setCapability("deviceName", "Pixel_3a");
         cap.setCapability("appPackage", "com.eterno");
         cap.setCapability("appActivity", "com.newshunt.app.view.activity.Splash");
-//        cap.setCapability("app","F:\\Appium_project\\A11Y-Android-IOS-\\EtsyApp\\src\\main\\com.etsy.android_6.69.0-66900046_minAPI28(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk");
         cap.setCapability("noReset", "true");
+        cap.setCapability("udid", "emulator-5554");
 
         AppiumDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), cap);
+
+        List cmdArgs = Arrays.asList("put", "secure", "enabled_accessibility_services", "com.example.android.demoservice/com.example.android.globalactionbarservice.GlobalActionBarService");
+        Map enableServiceCmd = ImmutableMap
+                .of("command", "settings", "args", cmdArgs);
+        driver.executeScript("mobile: shell", enableServiceCmd);
         Thread.sleep(2000);
         WebElement searchBoxIcon = waitForElementToBeClickable(driver, By.xpath("(//android.widget.ImageView[@resource-id=\"com.eterno:id/icon_dummy\"])[2]"), 20);
         fullScreenshot(driver,searchBoxIcon);
@@ -60,7 +70,7 @@ public class dailyHuntA11yCheck {
         WebElement  mintMoney= waitForElementToBeClickable(driver, By.xpath("//android.widget.Image[@text=\"Why Not Mint Money\"]"), 10);
         fullScreenshot(driver,mintMoney);
         mintMoney.click();
-
+        copyResultsFile(driver);
     }
 
     public static WebElement waitForElementToBeClickable(AppiumDriver driver, By locator, int timeoutInSeconds) {
@@ -87,5 +97,48 @@ public class dailyHuntA11yCheck {
 
         return filename;
     }
+//    public static void copyResultsFile(AppiumDriver driver)
+//    {
+//        byte[] data = driver.pullFile("/sdcard/Documents/ResultsJson.txt");
+//        try {
+//            FileWriter myWriter = new FileWriter("filename.txt");
+//            myWriter.write(new String(data));
+//            myWriter.close();
+//            System.out.println("Successfully wrote to the file.");
+//        } catch (IOException e) {
+//            System.out.println("An error occurred.");
+//            e.printStackTrace();
+//        }
+//    }
+
+    public static void copyResultsFile(AppiumDriver driver) throws IOException, InterruptedException {
+        String deviceUDID = driver.getCapabilities().getCapability("udid").toString();
+
+        // Define source and destination paths
+        String remoteFilePath = "/sdcard/Documents/ResultsJson.txt";
+        String localFilePath = "filename.txt";
+
+        // Build the adb command
+        String adbPullCommand = "adb -s " + deviceUDID + " pull " + remoteFilePath + " " + localFilePath;
+
+        // Create a new ProcessBuilder instance
+        ProcessBuilder processBuilder = new ProcessBuilder("adb", "-s", deviceUDID, "pull", remoteFilePath, localFilePath);
+
+        // Start the process
+        Process process = processBuilder.start();
+
+        // Wait for the process to finish
+        process.waitFor();
+
+        // Check the process exit value for any errors (optional)
+        int exitValue = process.exitValue();
+        if (exitValue != 0) {
+            // Handle error if process failed to execute
+            throw new IOException("Failed to pull file using adb command");
+        }
+    }
+
+
+
 
 }
